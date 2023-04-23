@@ -126,7 +126,7 @@ if __name__ == "__main__":
     corpus_A_ngrams, corpus_B_ngrams = separate_ngrams_by_corpus(df)
 
     # Save the results to separate sheets in an Excel file
-    with pd.ExcelWriter("ngram_log_likelihood_results.xlsx") as writer:
+    with pd.ExcelWriter("results/log_likelihood_results.xlsx") as writer:
         df.to_excel(writer, sheet_name='All_keywords', index=False)
         corpus_A_ngrams.to_excel(writer, sheet_name=f'corpus_{corpus_a_name}', index=False)
         corpus_B_ngrams.to_excel(writer, sheet_name=f'corpus_{corpus_b_name}', index=False)
@@ -136,7 +136,7 @@ if __name__ == "__main__":
     metadata_df_A = pd.DataFrame(corpus_A_metadata, columns=['title', 'tokens', 'lemmas'])
     metadata_df_B = pd.DataFrame(corpus_B_metadata, columns=['title', 'tokens', 'lemmas'])
 
-    with pd.ExcelWriter("corpora_metadata.xlsx") as writer:
+    with pd.ExcelWriter("results/corpora_metadata.xlsx") as writer:
         metadata_df_A.to_excel(writer, sheet_name=f'corpus_{corpus_a_name}', index=False)
         metadata_df_B.to_excel(writer, sheet_name=f'corpus_{corpus_b_name}', index=False)
 
