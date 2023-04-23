@@ -8,6 +8,7 @@ from gensim.models.phrases import Phraser
 from tqdm import tqdm
 import shutil
 import tempfile
+import argparse
 
 # Combine multiple directories into a temporary directory
 def combine_directories(directories):
@@ -89,24 +90,47 @@ def separate_ngrams_by_corpus(results_df):
     return corpus_A_ngrams, corpus_B_ngrams
 
 if __name__ == "__main__":
-    corpus_a_name = "szustak"
-    corpus_b_name = "zieliński"
+    parser = argparse.ArgumentParser(description='Analyze n-grams in two corpora.')
+    parser.add_argument('corpus_a_name', type=str, help='The name of the first corpus')
+    parser.add_argument('corpus_b_name', type=str, help='The name of the second corpus')
+    args = parser.parse_args()
+
+    corpus_a_name = args.corpus_a_name
+    corpus_b_name = args.corpus_b_name
+    
+    playlist_names = {
+        'szustak': ['CNN', 'Wstawaki'],
+        'zieliński': ['Kwadransik ze Słowem'],
+        'kamiński': ['Gdy zstępuje Duch Święty - seria 1', 'Gdy zstępuje Duch Święty - seria 2', 'Kazania Biskupa 2020']
+    }
+
+    # Check if the provided parameters exist as keys in the dictionary
+    if corpus_a_name not in playlist_names:
+        raise ValueError(f"Invalid value for 'corpus_a_name': {corpus_a_name}. Must be one of {list(playlist_names.keys())}.")
+
+    if corpus_b_name not in playlist_names:
+        raise ValueError(f"Invalid value for 'corpus_b_name': {corpus_b_name}. Must be one of {list(playlist_names.keys())}.")
+
+
     dir_transcripts = os.path.join(os.getcwd(), 'transcripts')
 
-    dir1 = os.path.join(dir_transcripts, 'CNN')
-    dir2 = os.path.join(dir_transcripts, 'Wstawaki')
+    # Get the folder names for each corpus
+    corpus_a_dirs = [os.path.join(dir_transcripts, folder) for folder in playlist_names[corpus_a_name]]
+    corpus_b_dirs = [os.path.join(dir_transcripts, folder) for folder in playlist_names[corpus_b_name]]
 
+    # Combine directories for corpus A
     print(f"Combining directories for corpus {corpus_a_name}...")
-    combined_directory = combine_directories([dir1, dir2])
+    combined_directory = combine_directories(corpus_a_dirs)
 
+    # Process text files and extract metadata for corpus A
     print(f"Processing text files and extracting metadata for corpus {corpus_a_name}...")
     corpus_c_texts, corpus_A_metadata = process_files_and_extract_metadata(combined_directory)
 
-    dir4 = os.path.join(dir_transcripts, 'Kwadransik ze Słowem')
-
+    # Combine directories for corpus B
     print(f"Combining directories for corpus {corpus_b_name}...")
-    combined_directory = combine_directories([dir4])
+    combined_directory = combine_directories(corpus_b_dirs)
 
+    # Process text files and extract metadata for corpus B
     print(f"Processing text files and extracting metadata for corpus {corpus_b_name}...")
     corpus_r_texts, corpus_B_metadata = process_files_and_extract_metadata(combined_directory)
 
@@ -119,14 +143,19 @@ if __name__ == "__main__":
     print("Analyzing log-likelihood for n-grams in both corpora...")
     log_likelihood_results = analyze_log_likelihood(corpus_c_ngrams, corpus_r_ngrams)
 
-    df = pd.DataFrame(log_likelihood_results, columns=['keyword', 'log_likelihood', 'occurrences_A', 'occurrences_per_1000_A', 'occurrences_B', 'occurrences_per_1000_B'])
+    df = pd.DataFrame(log_likelihood_results, columns=['keyword', 'log_likelihood', f'occurrences_{corpus_a_name}', f'occurrences_per_1000_{corpus_a_name}', f'occurrences_{corpus_b_name}', f'occurrences_per_1000_{corpus_b_name}'])
     df = df.sort_values(by='log_likelihood', ascending=False)
 
     # Separate n-grams based on occurrences per 1,000 words
     corpus_A_ngrams, corpus_B_ngrams = separate_ngrams_by_corpus(df)
 
+    # Create the results directory if it doesn't exist
+    results_dir = os.path.join(os.getcwd(), 'results', f'{corpus_a_name}_{corpus_b_name}')
+    os.makedirs(results_dir, exist_ok=True)
+
     # Save the results to separate sheets in an Excel file
-    with pd.ExcelWriter("results/log_likelihood_results.xlsx") as writer:
+    excel_path = os.path.join(results_dir, "log_likelihood_results.xlsx")
+    with pd.ExcelWriter(excel_path) as writer:
         df.to_excel(writer, sheet_name='All_keywords', index=False)
         corpus_A_ngrams.to_excel(writer, sheet_name=f'corpus_{corpus_a_name}', index=False)
         corpus_B_ngrams.to_excel(writer, sheet_name=f'corpus_{corpus_b_name}', index=False)
@@ -136,7 +165,8 @@ if __name__ == "__main__":
     metadata_df_A = pd.DataFrame(corpus_A_metadata, columns=['title', 'tokens', 'lemmas'])
     metadata_df_B = pd.DataFrame(corpus_B_metadata, columns=['title', 'tokens', 'lemmas'])
 
-    with pd.ExcelWriter("results/corpora_metadata.xlsx") as writer:
+    metadata_excel_path = os.path.join(results_dir, "corpora_metadata.xlsx")
+    with pd.ExcelWriter(metadata_excel_path) as writer:
         metadata_df_A.to_excel(writer, sheet_name=f'corpus_{corpus_a_name}', index=False)
         metadata_df_B.to_excel(writer, sheet_name=f'corpus_{corpus_b_name}', index=False)
 
