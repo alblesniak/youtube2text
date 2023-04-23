@@ -83,9 +83,9 @@ def analyze_log_likelihood(corpus_c, corpus_r):
         results.append((ngram, log_likelihood, occurrences_A, occurrences_per_1000_A, occurrences_B, occurrences_per_1000_B))
     return results
 
-def separate_ngrams_by_corpus(results_df):
-    corpus_A_ngrams = results_df[results_df['occurrences_per_1000_A'] > results_df['occurrences_per_1000_B']]
-    corpus_B_ngrams = results_df[results_df['occurrences_per_1000_A'] < results_df['occurrences_per_1000_B']]
+def separate_ngrams_by_corpus(results_df, corpus_a_name, corpus_b_name):
+    corpus_A_ngrams = results_df[results_df[f'occurrences_per_1000_{corpus_a_name}'] > results_df[f'occurrences_per_1000_{corpus_b_name}']]
+    corpus_B_ngrams = results_df[results_df[f'occurrences_per_1000_{corpus_a_name}'] < results_df[f'occurrences_per_1000_{corpus_b_name}']]
     
     return corpus_A_ngrams, corpus_B_ngrams
 
@@ -147,7 +147,7 @@ if __name__ == "__main__":
     df = df.sort_values(by='log_likelihood', ascending=False)
 
     # Separate n-grams based on occurrences per 1,000 words
-    corpus_A_ngrams, corpus_B_ngrams = separate_ngrams_by_corpus(df)
+    corpus_A_ngrams, corpus_B_ngrams = separate_ngrams_by_corpus(df, corpus_a_name, corpus_b_name)
 
     # Create the results directory if it doesn't exist
     results_dir = os.path.join(os.getcwd(), 'results', f'{corpus_a_name}_{corpus_b_name}')
